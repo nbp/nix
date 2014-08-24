@@ -284,11 +284,12 @@ static void performOp(bool trusted, unsigned int clientVersion,
     }
 
     case wopAddTextToStore: {
+        uid_t uid = readInt(from);
         string suffix = readString(from);
         string s = readString(from);
         PathSet refs = readStorePaths<PathSet>(from);
         startWork();
-        Path path = store->addTextToStore(suffix, s, refs);
+        Path path = store->addTextToStore(suffix, s, refs, uid);
         stopWork();
         writeString(path, to);
         break;

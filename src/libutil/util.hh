@@ -81,6 +81,34 @@ DirEntries readDirectory(const Path & path);
 string readFile(int fd);
 string readFile(const Path & path, bool drain = false);
 
+/* Ensure that files created within this scope are secure by default.  This
+   RAI does not protect against doing a chmod of the file. */
+class SecretMode
+{
+    mode_t oldMask_;
+    mode_t filterMask_;
+
+  public:
+    explicit SecretMode(string *user)
+    {
+        /* If we need to make private files, just make them only readable by
+           the store user, and later we will transfer the ownership with ACL
+           is the filesystem of the store supports it. */
+        filterMask_ = 0000;
+        if (user)
+            filterMask_ = 0077;
+        oldMask_ = umask(filterMask_);
+    }
+
+    ~SecretMode() {
+        umask(oldMask_);
+    }
+
+    mode_t filterMode(mode_t mode) const {
+        return mode & ~filterMask_;
+    }
+};
+
 /* Write a string to a file. */
 void writeFile(const Path & path, const string & s);
 

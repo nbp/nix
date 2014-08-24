@@ -785,9 +785,10 @@ static void prim_fromJSON(EvalState & state, const Pos & pos, Value * * args, Va
 }
 
 
-/* Store a string in the Nix store as a source file that can be used
-   as an input by derivations. */
-static void prim_toFile(EvalState & state, const Pos & pos, Value * * args, Value & v)
+/* Store a string in the Nix store as a source file that can be used as an
+   input by derivations.  An uid different than -1 is used to indicate a
+   secret file. */
+static void toFile_impl(EvalState & state, uid_t uid, const Pos & pos, Value * * args, Value & v)
 {
     PathSet context;
     string name = state.forceStringNoCtx(*args[0], pos);
@@ -805,13 +806,30 @@ static void prim_toFile(EvalState & state, const Pos & pos, Value * * args, Valu
 
     Path storePath = settings.readOnlyMode
         ? computeStorePathForText(name, contents, refs)
-        : store->addTextToStore(name, contents, refs, state.repair);
+        : store->addTextToStore(name, contents, refs, uid, state.repair);
 
     /* Note: we don't need to add `context' to the context of the
        result, since `storePath' itself has references to the paths
        used in args[1]. */
 
     mkString(v, storePath, singleton<PathSet>(storePath));
+}
+
+
+/* Store a string in the Nix store as a source file that can be used
+   as an input by derivations. */
+static void prim_toFile(EvalState & state, const Pos & pos, Value * * args, Value & v)
+{
+    toFile_impl(state, /* no secret */ -1, pos, args, v);
+}
+
+
+/* Store a secret string in the Nix store as a source file that can be used
+   as an input by derivations. */
+static void prim_toSecretFile(EvalState & state, const Pos & pos, Value * * args, Value & v)
+{
+    uid_t uid = getuid();
+    toFile_impl(state, /* secret */ uid, pos, args, v);
 }
 
 
@@ -1408,6 +1426,7 @@ void EvalState::createBaseEnv()
     addPrimOp("__toJSON", 1, prim_toJSON);
     addPrimOp("__fromJSON", 1, prim_fromJSON);
     addPrimOp("__toFile", 2, prim_toFile);
+    addPrimOp("__toSecretFile", 2, prim_toSecretFile);
     addPrimOp("__filterSource", 2, prim_filterSource);
 
     // Sets

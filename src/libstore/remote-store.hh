@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include <sys/types.h>
+
 #include "store-api.hh"
 
 
@@ -58,7 +60,7 @@ public:
         PathFilter & filter = defaultPathFilter, bool repair = false);
 
     Path addTextToStore(const string & name, const string & s,
-        const PathSet & references, bool repair = false);
+        const PathSet & references, uid_t uid, bool repair = false);
 
     void exportPath(const Path & path, bool sign,
         Sink & sink);

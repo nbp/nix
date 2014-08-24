@@ -424,12 +424,13 @@ Path RemoteStore::addToStore(const Path & _srcPath,
 
 
 Path RemoteStore::addTextToStore(const string & name, const string & s,
-    const PathSet & references, bool repair)
+    const PathSet & references, uid_t uid, bool repair)
 {
     if (repair) throw Error("repairing is not supported when building through the Nix daemon");
 
     openConnection();
     writeInt(wopAddTextToStore, to);
+    writeInt(uid, to);
     writeString(name, to);
     writeString(s, to);
     writeStrings(references, to);
